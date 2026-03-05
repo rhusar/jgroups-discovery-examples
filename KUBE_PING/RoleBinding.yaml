@@ -1,0 +1,11 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jgroups-discovery-examples-kube-ping
+subjects:
+  - kind: ServiceAccount
+    name: jgroups-discovery-examples-kube-ping
+roleRef:
+  kind: Role
+  name: jgroups-discovery-examples-kube-ping
+  apiGroup: rbac.authorization.k8s.io

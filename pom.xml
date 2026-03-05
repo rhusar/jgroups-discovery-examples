@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.jboss</groupId>
+        <artifactId>jboss-parent</artifactId>
+        <version>52</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>io.github.rhusar.jgroups</groupId>
+    <artifactId>jgroups-discovery-examples</artifactId>
+    <version>0.0.1.Final-SNAPSHOT</version>
+
+    <name>JGroups Discovery Examples</name>
+    <description>Examples demonstrating JGroups discovery mechanisms on Kubernetes.</description>
+    <url>https://github.com/rhusar/jgroups-discovery-examples</url>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>rhusar</id>
+            <name>Radoslav Husar</name>
+            <url>https://github.com/rhusar</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/rhusar/jgroups-discovery-examples.git</connection>
+        <developerConnection>scm:git:git@github.com:rhusar/jgroups-discovery-examples.git</developerConnection>
+        <url>https://github.com/rhusar/jgroups-discovery-examples</url>
+    </scm>
+
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/rhusar/jgroups-discovery-examples/issues</url>
+    </issueManagement>
+
+    <ciManagement>
+        <system>GitHub Actions</system>
+        <url>https://github.com/rhusar/jgroups-discovery-examples/actions</url>
+    </ciManagement>
+
+    <properties>
+        <k8s.namespace>myproject</k8s.namespace>
+        <entryPoint.options.debug>-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8787</entryPoint.options.debug>
+        <entryPoint.options.useIPv4>-Djava.net.preferIPv4Stack=true</entryPoint.options.useIPv4>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/deployments</outputDirectory>
+                            <includeScope>runtime</includeScope>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-artifact</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>${project.groupId}</groupId>
+                                    <artifactId>${project.artifactId}</artifactId>
+                                    <version>${project.version}</version>
+                                    <outputDirectory>${project.build.directory}/deployments</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.eclipse.jkube</groupId>
+                <artifactId>kubernetes-maven-plugin</artifactId>
+                <version>1.17.0</version>
+                <configuration>
+                    <!-- We are not interested in creating any services -->
+                    <ignoreServices>true</ignoreServices>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>dns-ping</id>
+                        <goals>
+                            <goal>resource</goal>
+                            <goal>build</goal>
+                        </goals>
+                        <configuration>
+                            <images>
+                                <image>
+                                    <name>jgroups/${project.artifactId}-dns-ping:${project.version}</name>
+                                    <alias>jgroups-dns-ping</alias>
+                                    <build>
+                                        <cleanup>none</cleanup>
+                                        <from>eclipse-temurin:25-jdk-alpine</from>
+                                        <assembly>
+                                            <targetDir>/deployments</targetDir>
+                                            <inline>
+                                                <fileSets>
+                                                    <fileSet>
+                                                        <directory>${project.build.directory}/deployments</directory>
+                                                        <outputDirectory>.</outputDirectory>
+                                                    </fileSet>
+                                                </fileSets>
+                                            </inline>
+                                        </assembly>
+                                        <entryPoint>
+                                            <shell>java -cp "/deployments/*" -Djgroups.config=/dns_ping.xml ${entryPoint.options.debug} ${entryPoint.options.useIPv4} io.github.rhusar.jgroups.discovery.JGroupsDiscoveryExample</shell>
+                                        </entryPoint>
+                                        <ports>
+                                            <port>7800</port>
+                                        </ports>
+                                    </build>
+                                </image>
+                            </images>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>kube-ping</id>
+                        <goals>
+                            <goal>resource</goal>
+                            <goal>build</goal>
+                        </goals>
+                        <configuration>
+                            <images>
+                                <image>
+                                    <name>jgroups/${project.artifactId}-kube-ping:${project.version}</name>
+                                    <alias>jgroups-kube-ping</alias>
+                                    <build>
+                                        <cleanup>none</cleanup>
+                                        <from>eclipse-temurin:25-jdk-alpine</from>
+                                        <assembly>
+                                            <targetDir>/deployments</targetDir>
+                                            <inline>
+                                                <fileSets>
+                                                    <fileSet>
+                                                        <directory>${project.build.directory}/deployments</directory>
+                                                        <outputDirectory>.</outputDirectory>
+                                                    </fileSet>
+                                                </fileSets>
+                                            </inline>
+                                        </assembly>
+                                        <entryPoint>
+                                            <shell>java -cp "/deployments/*" -Djgroups.config=/kube_ping.xml ${entryPoint.options.debug} ${entryPoint.options.useIPv4} io.github.rhusar.jgroups.discovery.JGroupsDiscoveryExample</shell>
+                                        </entryPoint>
+                                        <ports>
+                                            <!-- TCP.bind_port -->
+                                            <port>7800</port>
+                                            <!-- TODO check ports... -->
+                                            <!-- KUBE_PING requires exposing ping port -->
+                                            <port>8888</port>
+                                        </ports>
+                                        <env>
+                                            <KUBERNETES_NAMESPACE>${k8s.namespace}</KUBERNETES_NAMESPACE>
+                                        </env>
+                                    </build>
+                                </image>
+                            </images>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.jgroups</groupId>
+            <artifactId>jgroups</artifactId>
+            <version>5.5.2.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jgroups.kubernetes</groupId>
+            <artifactId>jgroups-kubernetes</artifactId>
+            <version>2.0.2.Final</version>
+        </dependency>
+    </dependencies>
+
+</project>

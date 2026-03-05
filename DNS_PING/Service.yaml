@@ -1,0 +1,15 @@
+# Headless service — DNS_PING resolves member IPs via A records returned for this service.
+# The DNS query to use is: jgroups-discovery-examples-dns-ping.jgroups-discovery-examples.svc.cluster.local
+apiVersion: v1
+kind: Service
+metadata:
+  name: jgroups-discovery-examples-dns-ping
+spec:
+  clusterIP: None
+  selector:
+    app: jgroups-discovery-examples-dns-ping
+  ports:
+    - name: tcp
+      port: 7800
+      protocol: TCP
+      targetPort: 7800

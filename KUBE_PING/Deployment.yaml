@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jgroups-discovery-examples-kube-ping
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jgroups-discovery-examples-kube-ping
+  template:
+    metadata:
+      labels:
+        app: jgroups-discovery-examples-kube-ping
+    spec:
+      serviceAccountName: jgroups-discovery-examples-kube-ping
+      containers:
+        - name: jgroups-discovery-examples-kube-ping
+          image: quay.io/rhusar/jgroups-discovery-examples-kube-ping:latest
+          env:
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+            - name: tcp
+              containerPort: 7800
+              protocol: TCP
+            - name: ping
+              containerPort: 8888
+              protocol: TCP

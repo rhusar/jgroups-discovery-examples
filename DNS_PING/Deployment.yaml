@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jgroups-discovery-examples-dns-ping
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jgroups-discovery-examples-dns-ping
+  template:
+    metadata:
+      labels:
+        app: jgroups-discovery-examples-dns-ping
+    spec:
+      containers:
+        - name: jgroups-discovery-examples-dns-ping
+          image: quay.io/rhusar/jgroups-discovery-examples-dns-ping:latest
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: >-
+                -Djgroups.dns.dns_query=jgroups-discovery-examples-dns-ping.jgroups-discovery-examples.svc.cluster.local
+          ports:
+            - name: tcp
+              containerPort: 7800
+              protocol: TCP

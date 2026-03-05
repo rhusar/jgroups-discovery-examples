@@ -1,0 +1,13 @@
+# KUBE_PING requires permission to list pods in the namespace to discover cluster members.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: jgroups-discovery-examples-kube-ping
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list

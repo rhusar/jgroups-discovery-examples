@@ -1,0 +1,182 @@
+:toc:
+= JGroups Discovery Examples
+
+== Building
+
+Project requires JDK 25 to build.
+
+[source,shell]
+----
+./mvnw clean install
+----
+
+This builds the following images:
+
+* `jgroups/jgroups-discovery-examples-dns-ping` — TCP stack with `DNS_PING` discovery
+* `jgroups/jgroups-discovery-examples-kube-ping` — TCP stack with `KUBE_PING` discovery
+
+== Configuration Properties
+
+The following system properties control the application behaviour:
+
+[cols="1,1,2"]
+|===
+|Property |Default |Description
+
+|`jgroups.config`
+|`/dns_ping.xml`
+|Classpath path to the JGroups stack configuration file.
+
+|`jgroups.cluster_name`
+|`jgroups-discovery-examples`
+|Name of the JGroups cluster to join.
+
+|===
+
+== Prerequisites
+
+These examples target https://developers.redhat.com/products/openshift-local/overview[OpenShift Local (CRC)]. Installing CRC https://crc.dev/docs/installing/[guide].
+
+. Start OpenShift Local:
++
+[source,shell]
+----
+crc start
+----
+
+. Configure the shell and log in:
++
+[source,shell]
+----
+eval $(crc oc-env)
+oc login -u developer -p developer https://api.crc.testing:6443
+----
+
+. Create a project (replace `jgroups-discovery-examples` with your preferred namespace throughout):
++
+[source,shell]
+----
+oc new-project jgroups-discovery-examples
+----
+
+. Build and publish the images to https://quay.io[Quay.io]:
++
+[source,shell]
+----
+./mvnw clean install
+
+podman login quay.io
+
+podman tag jgroups/jgroups-discovery-examples-dns-ping:0.0.1.Final-SNAPSHOT quay.io/rhusar/jgroups-discovery-examples-dns-ping:latest
+podman push quay.io/rhusar/jgroups-discovery-examples-dns-ping:latest
+
+podman tag jgroups/jgroups-discovery-examples-kube-ping:0.0.1.Final-SNAPSHOT quay.io/rhusar/jgroups-discovery-examples-kube-ping:latest
+podman push quay.io/rhusar/jgroups-discovery-examples-kube-ping:latest
+----
++
+NOTE: Quay.io repositories are private by default when first created. After pushing, make each
+repository public via *Repository Settings → Repository Visibility → Public* so OpenShift can pull
+the images without a pull secret.
+
+== KUBE_PING
+
+`KUBE_PING` discovers cluster members by querying the Kubernetes API for pods in the namespace
+matching a label selector. A `ServiceAccount` with a `Role` granting `get`/`list` on `pods` is required.
+
+=== Running on OpenShift Local
+
+. Apply the resources:
++
+[source,shell]
+----
+oc apply -f KUBE_PING/ServiceAccount.yaml
+oc apply -f KUBE_PING/Role.yaml
+oc apply -f KUBE_PING/RoleBinding.yaml
+oc apply -f KUBE_PING/Deployment.yaml
+----
+
+. Verify the pod is running and check logs:
++
+[source,shell]
+----
+oc get pods
+oc logs -f deployment/jgroups-discovery-examples-kube-ping
+----
+
+. Scale up to see cluster formation:
++
+[source,shell]
+----
+oc scale deployment jgroups-discovery-examples-kube-ping --replicas=3
+oc logs -f deployment/jgroups-discovery-examples-kube-ping
+----
+
+. Clean up:
++
+[source,shell]
+----
+oc delete -f KUBE_PING/Deployment.yaml
+oc delete -f KUBE_PING/RoleBinding.yaml
+oc delete -f KUBE_PING/Role.yaml
+oc delete -f KUBE_PING/ServiceAccount.yaml
+----
+
+=== Debugging
+
+* Verify the service account can list pods:
++
+[source,shell]
+----
+oc auth can-i list pods --as=system:serviceaccount:jgroups-discovery-examples:jgroups-discovery-examples-kube-ping
+----
+
+== DNS_PING
+
+`DNS_PING` discovers cluster members by performing a DNS query against a headless Kubernetes service,
+which returns an A record per pod. No API server access is required.
+
+=== Running on OpenShift Local
+
+. Apply the resources:
++
+[source,shell]
+----
+oc apply -f DNS_PING/Service.yaml
+oc apply -f DNS_PING/Deployment.yaml
+----
+
+. Verify the pod is running and check logs:
++
+[source,shell]
+----
+oc get pods
+oc logs -f deployment/jgroups-discovery-examples-dns-ping
+----
+
+. Scale up to see cluster formation:
++
+[source,shell]
+----
+oc scale deployment jgroups-discovery-examples-dns-ping --replicas=3
+oc logs -f deployment/jgroups-discovery-examples-dns-ping
+----
++
+Each new pod should trigger a view change logged across all members.
+
+. Clean up:
++
+[source,shell]
+----
+oc delete -f DNS_PING/Deployment.yaml
+oc delete -f DNS_PING/Service.yaml
+----
+
+=== Debugging
+
+* Verify DNS resolves the headless service correctly from inside the cluster:
++
+[source,shell]
+----
+oc run dnstest --image=registry.access.redhat.com/ubi9/ubi-minimal --restart=Never --rm -it -- \
+  nslookup jgroups-discovery-examples-dns-ping.jgroups-discovery-examples.svc.cluster.local
+----
