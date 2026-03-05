@@ -1,6 +1,24 @@
 :toc:
 = JGroups Discovery Examples
 
+This project demonstrates how https://jgroups.org[JGroups] cluster members discover each other using different discovery protocols.
+
+JGroups is a toolkit for reliable messaging and cluster communication.
+Before members can exchange messages they must form a cluster,
+which requires each member to locate the others — a process called _discovery_.
+
+Two cloud-specific discovery protocols are demonstrated:
+
+* **`DNS_PING`** (recommended) — performs a DNS A-record lookup against a headless Kubernetes `Service`, which
+returns one IP address per matching pod. Requires no API server access, only a headless service.
+
+* **`KUBE_PING`** — queries the Kubernetes API for pods matching a label selector in the same
+namespace. Requires a `ServiceAccount` with permission to list pods, but needs no additional
+network infrastructure.
+
+Each example runs a small application that joins a JGroups cluster and broadcasts a hello message every 5 seconds.
+View changes (members joining or leaving) are logged, making it easy to observe discovery and cluster formation in action.
+
 == Building
 
 Project requires JDK 25 to build.
@@ -180,3 +198,7 @@ oc delete -f DNS_PING/Service.yaml
 oc run dnstest --image=registry.access.redhat.com/ubi9/ubi-minimal --restart=Never --rm -it -- \
   nslookup jgroups-discovery-examples-dns-ping.jgroups-discovery-examples.svc.cluster.local
 ----
+
+== Reporting Issues
+
+https://github.com/rhusar/jgroups-discovery-examples/issues
