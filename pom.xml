@@ -93,7 +93,7 @@
             <plugin>
                 <groupId>org.eclipse.jkube</groupId>
                 <artifactId>kubernetes-maven-plugin</artifactId>
-                <version>1.17.0</version>
+                <version>1.19.0</version>
                 <configuration>
                     <!-- We are not interested in creating any services -->
                     <ignoreServices>true</ignoreServices>
